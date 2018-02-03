@@ -94,10 +94,9 @@ describe('GET /todos:id', () => {
         expect(res.body.error).toBe('Todo not found');
       })
       .end(done);
-      }
-  );
+  });
 
-  it('should return todo not found when invalid id sent', (done) => {
+  it('should return invalid id when invalid id sent', (done) => {
     request(app)
       .get('/todos/123')
       .expect(404)
@@ -105,7 +104,38 @@ describe('GET /todos:id', () => {
         expect(res.body.error).toBe('Invalid Todo id');
       })
       .end(done);
-      }
-  );
+  });
+});
 
+describe('DELETE /todos/:id', () => {
+  it('should delete specific todo by id', (done) => {
+    request(app)
+      .delete(`/todos/${todos[0]._id.toHexString()}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(todos[0].text);
+      })
+      .end(done);
+  });
+
+  it('should return todo not found when not existing id sent', (done) => {
+    var fakeid = new ObjectID;
+    request(app)
+      .delete(`/todos/${fakeid.toHexString()}`)
+      .expect(404)
+      .expect((res) => {
+        expect(res.body.error).toBe('Todo not found');
+      })
+      .end(done);
+  });
+
+  it('should return invalid todo when invalid id sent', (done) => {
+    request(app)
+      .delete('/todos/123')
+      .expect(404)
+      .expect((res) => {
+        expect(res.body.error).toBe('Invalid Todo id')
+      })
+      .end(done);
+  });
 });
