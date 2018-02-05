@@ -7,10 +7,13 @@ const {Todo} = require('./../models/todo');
 
 const todos = [{
   _id: new ObjectID,
-  text: 'First test todo'
+  text: 'First test todo',
+  completed: false
 }, {
   _id: new ObjectID,
-  text: 'Second test todo'
+  text: 'Second test todo',
+  completed: true,
+  completedAt: Date.now()
 }];
 
 
@@ -132,6 +135,65 @@ describe('DELETE /todos/:id', () => {
   it('should return invalid todo when invalid id sent', (done) => {
     request(app)
       .delete('/todos/123')
+      .expect(404)
+      .expect((res) => {
+        expect(res.body.error).toBe('Invalid Todo id')
+      })
+      .end(done);
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('should set specific todo as completed', (done) => {
+    var patch = {
+      text: "Patched todo",
+      completed: true
+    };
+    request(app)
+      .patch(`/todos/${todos[0]._id.toHexString()}`)
+      .send(patch)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(patch.text);
+        expect(res.body.todo.completed).toBe(true);
+        expect(res.body.todo.completedAt).toBeGreaterThan(0);
+      })
+      .end(done);
+  });
+
+  it('should set specific todo as incompleted', (done) => {
+    var patch = {
+      text: "Patched todo",
+      completed: false
+    };
+    request(app)
+      .patch(`/todos/${todos[1]._id.toHexString()}`)
+      .send(patch)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(patch.text);
+        expect(res.body.todo.completed).toBe(false);
+        expect(res.body.todo.completedAt).toBe(null);
+      })
+      .end(done);
+  });
+
+  it('should return todo not found when not existing id sent', (done) => {
+    var fakeid = new ObjectID;
+    request(app)
+      .patch(`/todos/${fakeid.toHexString()}`)
+      .send({})
+      .expect(404)
+      .expect((res) => {
+        expect(res.body.error).toBe('Todo not found');
+      })
+      .end(done);
+  });
+
+  it('should return invalid todo when invalid id sent', (done) => {
+    request(app)
+      .patch('/todos/123')
+      .send({})
       .expect(404)
       .expect((res) => {
         expect(res.body.error).toBe('Invalid Todo id')
