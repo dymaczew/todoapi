@@ -4,6 +4,8 @@ const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
+
 
 const todos = [{
   _id: new ObjectID,
@@ -199,5 +201,46 @@ describe('PATCH /todos/:id', () => {
         expect(res.body.error).toBe('Invalid Todo id')
       })
       .end(done);
+  });
+});
+
+describe('POST /users', () => {
+  it('should create new user', (done) => {
+    var email = 'test@test.com';
+    var password = 'test1234';
+
+    request(app)
+      .post('/users')
+      .send({email,password})
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.email).toBe(email);
+      })
+      .end((err,res) => {
+        if(err) {
+          return done(err)
+        }
+        User.find({email}).then((users) => {
+          expect(users.length).toBe(1);
+          expect(users[0].email).toBe(email);
+          done();
+        }).catch((e) => done(e));
+      });
+  });
+
+  it('should not create user with invalid request', (done) => {
+    request(app)
+      .post('/users')
+      .send({})
+      .expect(400)
+      .end((err, res) => {
+        if(err) {
+          return done(err)
+        }
+        User.find({}).then((users) => {
+          expect(users.length).toBe(0);
+          done();
+        }).catch((e) => done(e));
+      });
   });
 });
