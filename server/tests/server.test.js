@@ -99,13 +99,23 @@ describe('GET /todos:id', () => {
 
 describe('DELETE /todos/:id', () => {
   it('should delete specific todo by id', (done) => {
+    var hexId = todos[0]._id.toHexString();
     request(app)
-      .delete(`/todos/${todos[0]._id.toHexString()}`)
+      .delete(`/todos/${hexId}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.todo.text).toBe(todos[0].text);
+        expect(res.body.todo._id).toBe(hexId);
       })
-      .end(done);
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(hexId).then((todo) => {
+          expect(todo).toBeFalsy();
+          done();
+        }).catch((e) => done(e))
+      });
   });
 
   it('should return todo not found when not existing id sent', (done) => {
@@ -247,14 +257,14 @@ describe('POST /users', () => {
       .expect(400)
       .end((err, res) => {
         if(err) {
-          return done(err)
+          return done(err);
         }
         User.find({}).then((users) => {
           expect(users.length).toBe(2);
           done();
         }).catch((e) => done(e));
-      });
   });
+});
 
   it('should not create user with already taken email address', (done) => {
     request(app)
@@ -273,3 +283,54 @@ describe('POST /users', () => {
   });
 
 });
+
+describe('POST /users/login', () => {
+  it('should login a valid user and send back token', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: users[1].password
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.header['x-auth']).toBeTruthy()
+      }).end((err, res) => {
+        if (err) {
+          done(err);
+        }
+
+        User.findById(users[1]._id).then((user) => {
+          expect(user.tokens[0]).toMatchObject({
+            access: 'auth',
+            token: res.headers['x-auth']
+          });
+          done();
+        }).catch((e) => done (e));
+      });
+  });
+
+  it('should reject invalid login', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: "something@example.com",
+        password: "wrongpassword"
+      })
+      .expect(401)
+      .expect((res) => {
+        expect(res.header['x-auth']).toBeFalsy()
+      }).end((err, res) => {
+        if (err) {
+          done(err);
+        }
+
+        User.findById(users[1]._id).then((user) => {
+          expect(user.tokens.length).toBe(0);
+          done();
+        }).catch((e) => done (e));
+      });
+  });
+});
+
+
